@@ -18,6 +18,8 @@ ENV DEVICE_INDEX="" \
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
+COPY sdrplay/ /src/sdrplay/
+
 # hadolint ignore=DL3008,SC2086,SC2039
 RUN set -x && \
     TEMP_PACKAGES=() && \
@@ -69,10 +71,6 @@ RUN set -x && \
     make install && \
     popd && popd && \
 
-    # install sdrplay
-    curl --location --output /tmp/install_sdrplay.sh https://raw.githubusercontent.com/sdr-enthusiasts/install-libsdrplay/main/install_sdrplay.sh && \
-    chmod +x /tmp/install_sdrplay.sh && \
-    /tmp/install_sdrplay.sh && \
     # build libairspy
     git clone https://github.com/airspy/airspyhf.git /src/airspyhf && \
     pushd /src/airspyhf && \
@@ -93,6 +91,10 @@ RUN set -x && \
     make install && \
     ldconfig && \
     popd && popd && \
+    pushd /src/sdrplay && \
+    chmod +x install.sh && \
+    ./install.sh && \
+    popd && \
     # Deploy SoapySDR
     git clone https://github.com/pothosware/SoapySDR.git /src/SoapySDR && \
     pushd /src/SoapySDR && \
@@ -104,7 +106,17 @@ RUN set -x && \
     make install && \
     popd && popd && \
     ldconfig && \
-
+    # install SoapySDRPlay
+    git clone https://github.com/pothosware/SoapySDRPlay2.git /src/sdrplay/SoapySDRPlay2 && \
+    pushd /src/sdrplay/SoapySDRPlay2 && \
+    sed -i 's#// OVERLOAD DETECTED#SoapySDR_log(SOAPY_SDR_WARNING, "ADC OVERLOAD DETECTED");#' Streaming.cpp && \
+#    sed -i 's#// OVERLOAD CORRECTED#SoapySDR_log(SOAPY_SDR_WARNING, "ADC OVERLOAD CORRECTED");#' Streaming.cpp && \
+    mkdir build && \
+    pushd build && \
+    cmake .. && \
+    make && \
+    make install && \
+    popd && popd && \
     git clone https://github.com/ericek111/SoapyMiri.git /src/SoapyMiri && \
     pushd /src/SoapyMiri && \
     mkdir build && \
@@ -146,17 +158,6 @@ RUN set -x && \
     make all && \
     make install && \
     popd && popd && \
-    ldconfig && \
-    # install sdrplay support for soapy
-    git clone https://github.com/pothosware/SoapySDRPlay.git /src/SoapySDRPlay && \
-    pushd /src/SoapySDRPlay && \
-    mkdir build && \
-    pushd build && \
-    cmake .. && \
-    make && \
-    make install && \
-    popd && \
-    popd && \
     ldconfig && \
     # Install dumphfdl
     git clone https://github.com/szpajder/dumphfdl.git /src/dumphfdl && \
